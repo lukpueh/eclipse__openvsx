@@ -61,12 +61,20 @@ jobs:
           org.opencontainers.image.title=OpenVSX WebUI
 
     - name: Build and push Web UI Image
+      id: build
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
       with:
         context: webui
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Generate SBOM for Web UI Image
+      uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+      with:
+        image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.WEBUI_IMAGE }}@${{ steps.build.outputs.digest }}
+        artifact-name: sbom-webui.spdx.json
+        output-file: sbom-webui.spdx.json
 
   build-and-push-server:
     permissions:
@@ -109,6 +117,7 @@ jobs:
           org.opencontainers.image.title=OpenVSX Server
 
     - name: Build and push Server Image
+      id: build
       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
       env:
         DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_API_TOKEN }}
@@ -119,6 +128,13 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         secret-envs: |
           "dv-key=DEVELOCITY_ACCESS_KEY"
+
+    - name: Generate SBOM for Server Image
+      uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+      with:
+        image: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.SERVER_IMAGE }}@${{ steps.build.outputs.digest }}
+        artifact-name: sbom-server.spdx.json
+        output-file: sbom-server.spdx.json
 
   github-publish:
     runs-on: ubuntu-22.04
