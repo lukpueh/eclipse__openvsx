@@ -31,6 +31,9 @@ jobs:
         format: cyclonedx-json
         upload-artifact: false
 
+    - name: Upload SBOM for Web UI Image (TBD)
+      run: jq . sbom-webui-image.json
+
   sbom-server:
     if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-server'
     permissions:
@@ -44,3 +47,6 @@ jobs:
         output-file: sbom-server-image.json
         format: cyclonedx-json
         upload-artifact: false
+
+    - name: Upload SBOM for Server Image (TBD)
+      run: jq . sbom-server-image.json
