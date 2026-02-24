@@ -9,6 +9,8 @@ on:
         description: "Version tag (e.g. v1.2.3)"
         required: true
 
+permissions: {}
+
 env:
   REGISTRY: ghcr.io
   IMAGE_OWNER: eclipse
@@ -19,8 +21,6 @@ env:
 jobs:
   sbom-webui:
     if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-webui'
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
     - name: Generate SBOM
@@ -38,8 +38,6 @@ jobs:
 
   sbom-server:
     if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-server'
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
     - name: Generate SBOM
