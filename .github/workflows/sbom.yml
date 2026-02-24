@@ -43,4 +43,4 @@ jobs:
         image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.SERVER_IMAGE }}:${{ env.VERSION }}
         artifact-name: sbom-server-image.json
         output-file: sbom-server-image.json
-        format: cyclonedx
+        format: cyclonedx-json
