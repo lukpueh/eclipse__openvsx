@@ -5,7 +5,6 @@ bouncycastle    = "1.80"
 bucket4j-spring = "0.12.10"
 bucket4j        = "8.10.1"
 commons-lang3   = "3.20.0"
-cyclonedx-gradle = "3.2.0"
 flyway          = "11.20.3"
 gatling         = "3.14.9"
 gcloud          = "2.62.1"
@@ -30,7 +29,6 @@ tika            = "3.2.2"
 woodstox        = "6.4.0"
 
 [plugins]
-cyclonedx                    = { id = "org.cyclonedx.bom", version.ref = "cyclonedx-gradle" }
 download                     = { id = "de.undercouch.download", version = "5.7.0" }
 gatling                      = { id = "io.gatling.gradle", version.ref = "gatling" }
 hibernate-orm                = { id = "org.hibernate.orm", version.ref = "hibernate" }

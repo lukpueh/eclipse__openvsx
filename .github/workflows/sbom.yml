@@ -1,4 +1,4 @@
-name: Generate Docker SBOMs
+name: Generate SBOMs
 
 on:
   push:
@@ -22,7 +22,7 @@ env:
   VERSION: "${{ github.event_name == 'registry_package' && github.event.registry_package.package_version.container_metadata.tag.name || github.event_name == 'push' && github.ref_name || inputs.version }}"
 
 jobs:
-  sbom-webui:
+  sbom-webui-docker:
     if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-webui'
     runs-on: ubuntu-latest
     steps:
@@ -39,7 +39,7 @@ jobs:
         # TODO: upload to DependencyTrack via PIA
         jq . sbom.json
 
-  sbom-server:
+  sbom-server-docker:
     if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-server'
     runs-on: ubuntu-latest
     steps:
@@ -56,7 +56,7 @@ jobs:
         # TODO: upload to DependencyTrack via PIA
         jq . sbom.json
 
-  sbom-server-source:
+  sbom-server-gradle:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -72,8 +72,23 @@ jobs:
         distribution: 'temurin'
         java-version: 25
 
-    - name: Generate Source SBOM
-      run: server/gradlew --no-daemon -p server cyclonedxBom
+    - name: Generate SBOM
+      run: |
+        # Enable CycloneDX plugin on the fly via init script. This separates
+        # sbom gradle config from regular project config, and also allows
+        # generating sboms for older checkouts via workflow_dispatch.
+        cat > /tmp/cyclonedx-init.gradle << 'EOF'
+        initscript {
+            repositories { mavenCentral() }
+            dependencies {
+                classpath 'org.cyclonedx:cyclonedx-gradle-plugin:3.2.0'
+            }
+        }
+        allprojects {
+            apply plugin: org.cyclonedx.gradle.CycloneDxPlugin
+        }
+        EOF
+        server/gradlew --no-daemon --init-script /tmp/cyclonedx-init.gradle -p server cyclonedxBom
       env:
         DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_API_TOKEN }}
 
