@@ -1,6 +1,9 @@
 name: Generate Docker SBOMs
 
 on:
+  push:
+    tags:
+      - "v*"
   registry_package:
     types: [published]
   workflow_dispatch:
@@ -16,7 +19,7 @@ env:
   IMAGE_OWNER: eclipse
   SERVER_IMAGE: openvsx-server
   WEBUI_IMAGE: openvsx-webui
-  VERSION: "${{ github.event_name == 'registry_package' && github.event.registry_package.package_version.container_metadata.tag.name || inputs.version }}"
+  VERSION: "${{ github.event_name == 'registry_package' && github.event.registry_package.package_version.container_metadata.tag.name || github.event_name == 'push' && github.ref_name || inputs.version }}"
 
 jobs:
   sbom-webui:
@@ -52,3 +55,29 @@ jobs:
       run: |
         # TODO: upload to DependencyTrack via PIA
         jq . sbom.json
+
+  sbom-server-source:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        ref: ${{ env.VERSION }}
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Set up JDK
+      uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
+      with:
+        distribution: 'temurin'
+        java-version: 25
+
+    - name: Generate Source SBOM
+      run: server/gradlew --no-daemon -p server cyclonedxBom
+      env:
+        DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_API_TOKEN }}
+
+    - name: Upload SBOM
+      run: |
+        # TODO: upload to DependencyTrack via PIA
+        jq . build/reports/cyclonedx/bom.json

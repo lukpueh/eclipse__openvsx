@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.test.logger)
     alias(libs.plugins.gatling)
     alias(libs.plugins.rewrite)
+    alias(libs.plugins.cyclonedx)
     id 'maven-publish'
 }
 
