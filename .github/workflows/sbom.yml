@@ -27,8 +27,9 @@ jobs:
       uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
       with:
         image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.WEBUI_IMAGE }}:${{ env.VERSION }}
-        artifact-name: sbom-webui.spdx.json
-        output-file: sbom-webui.spdx.json
+        artifact-name: sbom-webui-image.json
+        output-file: sbom-webui-image.json
+        format: cyclonedx-json
 
   sbom-server:
     if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-server'
@@ -40,5 +41,6 @@ jobs:
       uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
       with:
         image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.SERVER_IMAGE }}:${{ env.VERSION }}
-        artifact-name: sbom-server.spdx.json
-        output-file: sbom-server.spdx.json
+        artifact-name: sbom-server-image.json
+        output-file: sbom-server-image.json
+        format: cyclonedx
