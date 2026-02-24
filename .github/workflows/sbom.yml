@@ -79,13 +79,14 @@ jobs:
         # generating sboms for older checkouts via workflow_dispatch.
         cat > /tmp/cyclonedx-init.gradle << 'EOF'
         initscript {
-            repositories { mavenCentral() }
+            repositories { gradlePluginPortal() }
             dependencies {
                 classpath 'org.cyclonedx:cyclonedx-gradle-plugin:3.2.0'
             }
         }
+        def cycloneDxPlugin = initscript.classLoader.loadClass('org.cyclonedx.gradle.CyclonedxPlugin')
         allprojects {
-            apply plugin: org.cyclonedx.gradle.CycloneDxPlugin
+            apply plugin: cycloneDxPlugin
         }
         EOF
         server/gradlew --no-daemon --init-script /tmp/cyclonedx-init.gradle -p server cyclonedxBom
