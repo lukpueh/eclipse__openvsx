@@ -74,26 +74,34 @@ jobs:
 
     - name: Generate SBOM
       run: |
-        # Enable CycloneDX plugin on the fly via init script. This separates
-        # sbom gradle config from regular project config, and also allows
-        # generating sboms for older checkouts via workflow_dispatch.
-        cat > /tmp/cyclonedx-init.gradle << 'EOF'
-        initscript {
-            repositories { gradlePluginPortal() }
-            dependencies {
-                classpath 'org.cyclonedx:cyclonedx-gradle-plugin:3.2.0'
-            }
-        }
-        def cycloneDxPlugin = initscript.classLoader.loadClass('org.cyclonedx.gradle.CyclonedxPlugin')
-        allprojects {
-            apply plugin: cycloneDxPlugin
-        }
+        # Enable CycloneDX plugin on the fly via init script. This leaves
+        # project gradle config untouched, and allows backfilling sboms for
+        # older project checkouts using workflow_dispatch.
+
+        # Generate init script
+        # see https://github.com/CycloneDX/cyclonedx-gradle-plugin?tab=readme-ov-file#usage-with-initialization-script
+
+        cat > /tmp/cyclonedx-init.gradle.kts << 'EOF'
+          import org.cyclonedx.gradle.CyclonedxPlugin
+
+          initscript {
+              repositories { gradlePluginPortal() }
+              dependencies {
+                  classpath("org.cyclonedx:cyclonedx-gradle-plugin:3.2.0")
+              }
+          }
+          rootProject {
+              apply<CyclonedxPlugin>()
+          }
         EOF
-        server/gradlew --no-daemon --init-script /tmp/cyclonedx-init.gradle -p server cyclonedxBom
+
+        # Generate aggregate SBOM
+        server/gradlew --no-daemon --init-script /tmp/cyclonedx-init.gradle.kts -p server cyclonedxBom
+
       env:
         DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_API_TOKEN }}
 
     - name: Upload SBOM
       run: |
         # TODO: upload to DependencyTrack via PIA
-        jq . build/reports/cyclonedx/bom.json
+        jq . server/build/reports/cyclonedx/bom.json
