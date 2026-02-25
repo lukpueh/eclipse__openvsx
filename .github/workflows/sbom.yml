@@ -1,0 +1,107 @@
+name: Generate SBOMs
+
+on:
+  push:
+    tags:
+      - "v*"
+  registry_package:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g. v1.2.3)"
+        required: true
+
+permissions: {}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: eclipse
+  SERVER_IMAGE: openvsx-server
+  WEBUI_IMAGE: openvsx-webui
+  VERSION: "${{ github.event_name == 'registry_package' && github.event.registry_package.package_version.container_metadata.tag.name || github.event_name == 'push' && github.ref_name || inputs.version }}"
+
+jobs:
+  sbom-webui-docker:
+    if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-webui'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Generate SBOM
+      uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.WEBUI_IMAGE }}:${{ env.VERSION }}
+        output-file: sbom.json
+        format: cyclonedx-json
+        upload-artifact: false
+
+    - name: Upload SBOM (TBD)
+      run: |
+        # TODO: upload to DependencyTrack via PIA
+        jq . sbom.json
+
+  sbom-server-docker:
+    if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-server'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Generate SBOM
+      uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/${{ env.SERVER_IMAGE }}:${{ env.VERSION }}
+        output-file: sbom.json
+        format: cyclonedx-json
+        upload-artifact: false
+
+    - name: Upload SBOM (TBD)
+      run: |
+        # TODO: upload to DependencyTrack via PIA
+        jq . sbom.json
+
+  sbom-server-gradle:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        ref: ${{ env.VERSION }}
+        fetch-depth: 0
+        persist-credentials: false
+
+    - name: Set up JDK
+      uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
+      with:
+        distribution: 'temurin'
+        java-version: 25
+
+    - name: Generate SBOM
+      run: |
+        # Enable CycloneDX plugin on the fly via init script. This leaves
+        # project gradle config untouched, and allows backfilling sboms for
+        # older project checkouts using workflow_dispatch.
+
+        # Generate init script
+        # see https://github.com/CycloneDX/cyclonedx-gradle-plugin?tab=readme-ov-file#usage-with-initialization-script
+
+        cat > /tmp/cyclonedx-init.gradle.kts << 'EOF'
+          import org.cyclonedx.gradle.CyclonedxPlugin
+
+          initscript {
+              repositories { gradlePluginPortal() }
+              dependencies {
+                  classpath("org.cyclonedx:cyclonedx-gradle-plugin:3.2.0")
+              }
+          }
+          rootProject {
+              apply<CyclonedxPlugin>()
+          }
+        EOF
+
+        # Generate aggregate SBOM
+        server/gradlew --no-daemon --init-script /tmp/cyclonedx-init.gradle.kts -p server cyclonedxBom
+
+      env:
+        DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_API_TOKEN }}
+
+    - name: Upload SBOM (TBD)
+      run: |
+        # TODO: upload to DependencyTrack via PIA
+        jq . server/build/reports/cyclonedx/bom.json
