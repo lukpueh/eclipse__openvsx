@@ -34,7 +34,7 @@ jobs:
         format: cyclonedx-json
         upload-artifact: false
 
-    - name: Upload SBOM
+    - name: Upload SBOM (TBD)
       run: |
         # TODO: upload to DependencyTrack via PIA
         jq . sbom.json
@@ -51,7 +51,7 @@ jobs:
         format: cyclonedx-json
         upload-artifact: false
 
-    - name: Upload SBOM
+    - name: Upload SBOM (TBD)
       run: |
         # TODO: upload to DependencyTrack via PIA
         jq . sbom.json
@@ -101,7 +101,7 @@ jobs:
       env:
         DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_API_TOKEN }}
 
-    - name: Upload SBOM
+    - name: Upload SBOM (TBD)
       run: |
         # TODO: upload to DependencyTrack via PIA
         jq . server/build/reports/cyclonedx/bom.json
