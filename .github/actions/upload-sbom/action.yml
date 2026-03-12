@@ -1,0 +1,38 @@
+name: Upload SBOM
+description: Upload SBOM to DependencyTrack via PIA
+
+inputs:
+  sbom-file:
+    description: Path to the SBOM JSON file
+    required: true
+  product-name:
+    description: Product name to report to DependencyTrack
+    required: true
+  product-version:
+    description: Product version to report to DependencyTrack
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Upload SBOM to sbom-staging.eclipse.org using pia-staging.eclipse.org
+    - name: Upload SBOM
+      shell: bash
+      env:
+        PIA_DOMAIN: pia-staging.eclipse.org
+      run: |
+        # Get OIDC token from GitHub Identity Provider
+        ID_TOKEN=$(curl -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${{ env.PIA_DOMAIN }}" | jq -r '.value')
+
+        # Create PIA payload on disk
+        # The bom data is too long for passing it directly as curl option
+        jq -n --arg name "${{ inputs.product-name }}" \
+              --arg version "${{ inputs.product-version }}" \
+              --arg bom "$(base64 -w0 "${{ inputs.sbom-file }}")" \
+              '{product_name: $name, product_version: $version, bom: $bom}' > pia.json
+
+        # Upload to PIA
+        curl --fail-with-body https://${{ env.PIA_DOMAIN }}/v1/upload/sbom \
+          -H "Authorization: Bearer ${ID_TOKEN}" \
+          --json "@pia.json"

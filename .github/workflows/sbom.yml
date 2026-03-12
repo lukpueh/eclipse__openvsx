@@ -12,7 +12,8 @@ on:
         description: "Version tag (e.g. v1.2.3)"
         required: true
 
-permissions: {}
+permissions:
+  id-token: write
 
 env:
   REGISTRY: ghcr.io
@@ -26,6 +27,11 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-webui'
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        sparse-checkout: .github/actions
+        persist-credentials: false
+
     - name: Generate SBOM
       uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
       with:
@@ -34,15 +40,22 @@ jobs:
         format: cyclonedx-json
         upload-artifact: false
 
-    - name: Upload SBOM (TBD)
-      run: |
-        # TODO: upload to DependencyTrack via PIA
-        jq . sbom.json
+    - name: Upload SBOM
+      uses: ./.github/actions/upload-sbom
+      with:
+        sbom-file: sbom.json
+        product-name: "openvsx-webui docker image"
+        product-version: ${{ env.VERSION }}
 
   sbom-server-docker:
     if: github.event_name == 'workflow_dispatch' || github.event.registry_package.name == 'openvsx-server'
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        sparse-checkout: .github/actions
+        persist-credentials: false
+
     - name: Generate SBOM
       uses: anchore/sbom-action@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
       with:
@@ -51,10 +64,12 @@ jobs:
         format: cyclonedx-json
         upload-artifact: false
 
-    - name: Upload SBOM (TBD)
-      run: |
-        # TODO: upload to DependencyTrack via PIA
-        jq . sbom.json
+    - name: Upload SBOM
+      uses: ./.github/actions/upload-sbom
+      with:
+        sbom-file: sbom.json
+        product-name: "openvsx-server docker image"
+        product-version: ${{ env.VERSION }}
 
   sbom-server-gradle:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push'
@@ -101,7 +116,9 @@ jobs:
       env:
         DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_API_TOKEN }}
 
-    - name: Upload SBOM (TBD)
-      run: |
-        # TODO: upload to DependencyTrack via PIA
-        jq . server/build/reports/cyclonedx/bom.json
+    - name: Upload SBOM
+      uses: ./.github/actions/upload-sbom
+      with:
+        sbom-file: server/build/reports/cyclonedx/bom.json
+        product-name: "openvsx-server"
+        product-version: ${{ env.VERSION }}
