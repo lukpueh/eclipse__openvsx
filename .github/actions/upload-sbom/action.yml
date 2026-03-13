@@ -28,15 +28,17 @@ runs:
         ID_TOKEN=$(curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${{ env.PIA_DOMAIN }}" | jq -r '.value')
 
-        # Build JSON payload and upload to PIA
-        # Use jq --arg for proper JSON escaping of untrusted inputs,
-        # and --rawfile to read the large base64 bom from a file
-        # (passing it as --arg would exceed the argument list limit).
-        base64 -w0 "${{ inputs.sbom-file }}" > bom.b64
-        jq -n --arg name "${{ inputs.product-name }}" \
-              --arg version "${{ inputs.product-version }}" \
-              --rawfile bom bom.b64 \
-              '{product_name: $name, product_version: $version, bom: $bom}' | \
-        curl -sS --fail-with-body https://${{ env.PIA_DOMAIN }}/v1/upload/sbom \
-          -H "Authorization: Bearer ${ID_TOKEN}" \
-          --json @-
+        echo "$ID_TOKEN" | awk -F. '{print $2}' | base64 -d 2>/dev/null | jq -r
+
+        # # Build JSON payload and upload to PIA
+        # # Use jq --arg for proper JSON escaping of untrusted inputs,
+        # # and --rawfile to read the large base64 bom from a file
+        # # (passing it as --arg would exceed the argument list limit).
+        # base64 -w0 "${{ inputs.sbom-file }}" > bom.b64
+        # jq -n --arg name "${{ inputs.product-name }}" \
+        #       --arg version "${{ inputs.product-version }}" \
+        #       --rawfile bom bom.b64 \
+        #       '{product_name: $name, product_version: $version, bom: $bom}' | \
+        # curl -sS --fail-with-body https://${{ env.PIA_DOMAIN }}/v1/upload/sbom \
+        #   -H "Authorization: Bearer ${ID_TOKEN}" \
+        #   --json @-
