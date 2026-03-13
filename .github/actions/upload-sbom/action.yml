@@ -22,7 +22,7 @@ runs:
       env:
         PIA_DOMAIN: pia-staging.eclipse.org
       run: |
-        echo "Upload SBOM for {{ inputs.product-name }} ${{ inputs.product-version }}"
+        echo "Upload SBOM for ${{ inputs.product-name }} ${{ inputs.product-version }}"
 
         # Get OIDC token from GitHub Identity Provider
         ID_TOKEN=$(curl -sS -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
