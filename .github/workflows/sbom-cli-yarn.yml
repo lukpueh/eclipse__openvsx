@@ -1,0 +1,68 @@
+name: Generate SBOM (CLI yarn)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. cli-1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+
+env:
+  NAME: openvsx-cli
+  PATH_PREFIX: cli
+  CYCLONEDX_YARN_PLUGIN_VERSION: "3.2.1"
+  TAG: "${{ github.event.release.tag_name || inputs.tag }}"
+
+jobs:
+  sbom-cli-yarn:
+    if: startsWith(github.event.release.tag_name || inputs.tag, 'cli-')
+    runs-on: ubuntu-latest
+    steps:
+    # Checkout .github/actions to make the upload-sbom composite action available
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        sparse-checkout: .github/actions
+        persist-credentials: false
+
+    # Checkout the release tag into a subdirectory for the yarn build
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      with:
+        ref: ${{ env.TAG }}
+        path: source
+        persist-credentials: false
+
+    - name: Setup Node.js
+      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+      with:
+        node-version: '24.x'
+        package-manager-cache: false
+        registry-url: 'https://registry.npmjs.org'
+
+    - name: Enable Corepack (Yarn Berry)
+      working-directory: source/${{ env.PATH_PREFIX }}
+      run: corepack enable
+
+    - name: Install dependencies
+      working-directory: source/${{ env.PATH_PREFIX }}
+      run: yarn install --immutable
+
+    - name: Generate SBOM
+      working-directory: source/${{ env.PATH_PREFIX }}
+      run: |
+        yarn dlx -q @cyclonedx/yarn-plugin-cyclonedx@${{ env.CYCLONEDX_YARN_PLUGIN_VERSION }} \
+          --output-format JSON \
+          --output-file bom.json \
+          --production
+
+    - name: Upload SBOM
+      uses: ./.github/actions/upload-sbom
+      with:
+        sbom-file: source/${{ env.PATH_PREFIX }}/bom.json
+        product-name: ${{ env.NAME }}
+        product-version: "${{ github.event.release.tag_name && format('{0}', github.event.release.tag_name) || inputs.tag }}"
