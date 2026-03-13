@@ -34,6 +34,6 @@ runs:
               --arg version "${{ inputs.product-version }}" \
               --rawfile bom bom.b64 \
               '{product_name: $name, product_version: $version, bom: $bom}' | \
-        curl --fail-with-body https://${{ env.PIA_DOMAIN }}/v1/upload/sbom \
+        curl -sS --fail-with-body https://${{ env.PIA_DOMAIN }}/v1/upload/sbom \
           -H "Authorization: Bearer ${ID_TOKEN}" \
           --json @-
