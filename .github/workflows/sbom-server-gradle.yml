@@ -16,21 +16,20 @@ permissions:
   id-token: write
 
 env:
-  VERSION: "${{ github.event_name == 'push' && github.ref_name || inputs.version }}"
+  VERSION: "${{ github.event_name == 'push' && github.ref_name || inputs.version }}" # TODO: simplify
 
 jobs:
   sbom-server-gradle:
     runs-on: ubuntu-latest
     steps:
-    # Checkout .github/actions to make the upload-sbom composite action
-    # available. It might not yet be avilable in the tag checkout below.
+    # Checkout .github/actions to make sure the upload-sbom action is available,
+    # even if the workflow was triggered manually on an older tag.
     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         sparse-checkout: .github/actions
         persist-credentials: false
 
-    # Checkout the release tag into for the gradle build
-    # Use subdirectory to avoid collision with above checkout
+    # Checkout project into subdirectory to avoid collision with above checkout.
     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         ref: ${{ env.VERSION }}

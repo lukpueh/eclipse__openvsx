@@ -3,8 +3,9 @@
 name: Generate SBOM (webui yarn) # PLEASE DO NOT CHANGE!
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - 'webui-*'
   workflow_dispatch:
     inputs:
       tag:
@@ -17,22 +18,23 @@ permissions:
 
 env:
   NAME: openvsx-webui
-  PATH_PREFIX: webui
   CYCLONEDX_YARN_PLUGIN_VERSION: "3.2.1"
-  TAG: "${{ github.event.release.tag_name || inputs.tag }}"
+  TAG: "${{ inputs.tag || github.ref_name }}"
+  VERSION: "${{ inputs.tag || github.ref_name }}"
 
 jobs:
   sbom-webui-yarn:
-    if: startsWith(github.event.release.tag_name || inputs.tag, 'webui-')
+    if: startsWith(inputs.tag || github.ref_name, 'webui-')
     runs-on: ubuntu-latest
     steps:
-    # Checkout .github/actions to make the upload-sbom composite action available
+    # Checkout .github/actions to make sure the upload-sbom action is available,
+    # even if the workflow was triggered manually on an older tag.
     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         sparse-checkout: .github/actions
         persist-credentials: false
 
-    # Checkout the release tag into a subdirectory for the yarn build
+    # Checkout project into subdirectory to avoid collision with above checkout.
     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       with:
         ref: ${{ env.TAG }}
@@ -47,15 +49,15 @@ jobs:
         registry-url: 'https://registry.npmjs.org'
 
     - name: Enable Corepack (Yarn Berry)
-      working-directory: source/${{ env.PATH_PREFIX }}
+      working-directory: source/webui
       run: corepack enable
 
     - name: Install dependencies
-      working-directory: source/${{ env.PATH_PREFIX }}
+      working-directory: source/webui
       run: yarn install --immutable
 
     - name: Generate SBOM
-      working-directory: source/${{ env.PATH_PREFIX }}
+      working-directory: source/webui
       run: |
         yarn dlx -q @cyclonedx/yarn-plugin-cyclonedx@${{ env.CYCLONEDX_YARN_PLUGIN_VERSION }} \
           --output-format JSON \
@@ -65,6 +67,6 @@ jobs:
     - name: Upload SBOM
       uses: ./.github/actions/upload-sbom
       with:
-        sbom-file: source/${{ env.PATH_PREFIX }}/bom.json
+        sbom-file: source/webui/bom.json
         product-name: ${{ env.NAME }}
-        product-version: "${{ github.event.release.tag_name && format('{0}', github.event.release.tag_name) || inputs.tag }}"
+        product-version: ${{ env.VERSION }}
