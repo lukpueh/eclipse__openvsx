@@ -1,4 +1,6 @@
-name: Generate SBOM (server docker image)
+# As temporary workaround this name is used to assign the SBOM to the correct
+# product slot within the OpenVSX project on DependencyTrack.
+name: Generate SBOM (server docker image) # PLEASE DO NOT CHANGE!
 
 on:
   registry_package:

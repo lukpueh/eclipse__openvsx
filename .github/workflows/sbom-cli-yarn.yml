@@ -1,4 +1,6 @@
-name: Generate SBOM (CLI yarn)
+# As temporary workaround this name is used to assign the SBOM to the correct
+# product slot within the OpenVSX project on DependencyTrack.
+name: Generate SBOM (CLI yarn) # PLEASE DO NOT CHANGE!
 
 on:
   release:
