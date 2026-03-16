@@ -18,15 +18,17 @@ permissions:
 
 env:
   NAME: openvsx-cli
+  TAG: "${{ inputs.tag || github.ref_name }}"
   CYCLONEDX_YARN_PLUGIN_VERSION: "3.2.1"
-  TAG: "${{ inputs.tag || github.ref_name }}" # TODO: verify
-  VERSION: "${{ inputs.tag || github.ref_name }}" # TODO: verify and strip prefix
 
 jobs:
   sbom-cli-yarn:
     if: startsWith(inputs.tag || github.ref_name, 'cli-')
     runs-on: ubuntu-latest
     steps:
+    - name: Get version
+      run: echo "VERSION=${TAG#cli-}" >> "$GITHUB_ENV"
+
     # Checkout .github/actions to make sure the upload-sbom action is available,
     # even if the workflow was triggered manually on an older tag.
     - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
