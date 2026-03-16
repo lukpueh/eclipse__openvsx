@@ -1,5 +1,5 @@
-# As temporary workaround this name is used to assign the SBOM to the correct
-# product slot within the OpenVSX project on DependencyTrack.
+# FIXME: As temporary workaround this name is used to assign the SBOM to the
+# correct product slot within the OpenVSX project on DependencyTrack.
 name: Generate SBOM (webui docker image) # PLEASE DO NOT CHANGE!
 
 on:
@@ -18,6 +18,8 @@ env:
   REGISTRY: ghcr.io
   OWNER: eclipse
   NAME: openvsx-webui
+  # TODO: Make sure that `registry_package.[...].tag.name` can be relied on.
+  # What if 'docker/metadata-action' in release.yml sets no, or multiple tags?
   VERSION: "${{ inputs.version || github.event.registry_package.package_version.container_metadata.tag.name }}"
 
 jobs:
